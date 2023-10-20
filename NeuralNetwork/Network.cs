@@ -12,7 +12,7 @@ namespace NeuralNetwork
         /// <summary>
         /// Ошибка.
         /// </summary>
-        private float mse;
+        private double mse;
 
         /// <summary>
         /// Скорость обучения.
@@ -35,9 +35,19 @@ namespace NeuralNetwork
         private readonly List<Weight[]> weightLayers;
 
         /// <summary>
+        /// Функция активации.
+        /// </summary>
+        private Func<float, float> activationFunction;
+
+        /// <summary>
+        /// Производная функции активации.
+        /// </summary>
+        private Func<float, float> derivativeActivationFunction;
+
+        /// <summary>
         /// Ошибка.
         /// </summary>
-        public float MSE
+        public double MSE
         {
             get => mse;
         }
@@ -77,6 +87,35 @@ namespace NeuralNetwork
         }
 
         /// <summary>
+        /// Функция активации.
+        /// </summary>
+        public Func<float, float> ActivationFunction
+        {
+            get => activationFunction;
+            set
+            {
+                activationFunction = value;
+
+                foreach (Neuron[] layer in neuronLayers)
+                {
+                    foreach (Neuron neuron in layer)
+                    {
+                        neuron.ActivationFunction = value;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Производная функции активации.
+        /// </summary>
+        public Func<float, float> DerivativeActivationFunction
+        {
+            get => derivativeActivationFunction;
+            set => derivativeActivationFunction = value;
+        }
+
+        /// <summary>
         /// Создание нейронной сети.
         /// </summary>
         /// <param name="layersNeuronsCount">Количество нейронов в слоях.</param>
@@ -87,6 +126,9 @@ namespace NeuralNetwork
             {
                 throw new ArgumentOutOfRangeException(nameof(layersNeuronsCount), "Необходимо как минимум два слоя.");
             }
+
+            activationFunction = new Func<float, float>(value => (float)(1 / (1 + Math.Exp(-value))));
+            derivativeActivationFunction = new Func<float, float>((value) => (1 - value) * value);
 
             trainSpeed = 0.7f;
             moment = 0.3f;
@@ -100,7 +142,7 @@ namespace NeuralNetwork
 
                 for (int i = 0; i < count; i++)
                 {
-                    layer[i] = new Neuron();
+                    layer[i] = new Neuron(activationFunction);
                 }
 
                 neuronLayers.Add(layer);
@@ -120,7 +162,7 @@ namespace NeuralNetwork
                     {
                         Weight weight = new Weight(inputNeuron, outputNeuron)
                         {
-                            Value = new Random().Next(-30000, 30000) / 10000
+                            Value = (float)new Random().Next(-3000, 3000) / 1000
                         };
 
                         layer[weightCount] = weight;
@@ -180,13 +222,13 @@ namespace NeuralNetwork
                 Execute();
 
                 {
-                    float mse = 0;
+                    double mse = 0;
 
                     for (int i = 0; i < OutputLayer.Length; i++)
                     {
                         float tmp = task.OutputNeurons[i].Value - OutputLayer[i].Activation;
-                        mse += (float)Math.Pow(tmp, 2);
-                        OutputLayer[i].Delta = (1 - OutputLayer[i].Activation) * OutputLayer[i].Activation * tmp;
+                        mse += Math.Pow(tmp, 2);
+                        OutputLayer[i].Delta = derivativeActivationFunction(OutputLayer[i].Activation) * tmp;
                     }
 
                     mse /= OutputLayer.Length;
@@ -206,7 +248,7 @@ namespace NeuralNetwork
                             curentNeuron.Delta += weight.Value * weight.OutputNeuron.Delta;
                         }
 
-                        curentNeuron.Delta *= (1 - curentNeuron.Activation) * curentNeuron.Activation;
+                        curentNeuron.Delta *= derivativeActivationFunction(curentNeuron.Activation);
 
                         foreach (Weight weight in weights)
                         {

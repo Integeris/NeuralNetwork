@@ -23,6 +23,11 @@ namespace NeuralNetwork
         private float delta;
 
         /// <summary>
+        /// Функция активации.
+        /// </summary>
+        private Func<float, float> activationFunction;
+
+        /// <summary>
         /// Текущее значение.
         /// </summary>
         public float Value
@@ -31,7 +36,7 @@ namespace NeuralNetwork
             set
             {
                 this.value = value;
-                activation = (float)(1 / (1 + Math.Exp(-value)));
+                activation = activationFunction(value);
             }
         }
 
@@ -53,10 +58,25 @@ namespace NeuralNetwork
         }
 
         /// <summary>
+        /// Функция активации.
+        /// </summary>
+        public Func<float, float> ActivationFunction
+        {
+            get => activationFunction;
+            set => activationFunction = value;
+        }
+
+        /// <summary>
         /// Создание нейрона.
         /// </summary>
-        public Neuron() 
+        public Neuron(Func<float, float>? activationFunction)
         {
+            if (activationFunction == null)
+            {
+                throw new ArgumentNullException(nameof(activationFunction));
+            }
+
+            this.activationFunction = activationFunction;
             Value = 0;
         }
 
